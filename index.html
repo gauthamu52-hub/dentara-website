@@ -40,7 +40,7 @@
 
   <nav><div class="container navin">
     <a class="brand" href="#"><img src="assets/dentara-logo.png" alt="Dentara Multi Speciality Dental Care logo"><span>DENTARA<small>Multi Speciality Dental Care</small></span></a>
-    <div class="links"><a href="#home">Home</a><a href="#treatments">Treatments</a><a href="#about">Why Dentara</a><a href="#doctors">Doctors</a><a href="#reviews">Reviews</a><a href="#contact">Contact</a></div>
+    <div class="links"><a href="#home">Home</a><a href="#treatments">Treatments</a><a href="#about">Why Dentara</a><a href="#doctors">Doctors</a><a href="#reviews">Reviews</a><a href="#blog">Blog</a><a href="#gallery">Gallery</a><a href="#contact">Contact</a></div>
     <a class="btn primary" href="#contact">Book Appointment</a>
   </div></nav>
 
@@ -106,6 +106,16 @@
       </div>
     </div></section>
 
+    <section id="blog" class="services"><div class="container">
+      <div class="section-head"><div class="eyebrow">Dental health insights</div><h2>Latest from Dentara</h2><p>Helpful dental information and updates from our Whitefield dental clinic.</p></div>
+      <div id="blog-list" class="grid"><div class="service"><h3>Loading latest articles…</h3><p>Please wait while the latest Dentara blog posts are loaded.</p></div></div>
+    </div></section>
+
+    <section id="gallery"><div class="container">
+      <div class="section-head"><div class="eyebrow">Our clinic</div><h2>Clinic photos</h2><p>Take a look at Dentara Multi Speciality Dental Care.</p></div>
+      <div id="gallery-list" class="grid"><div class="service"><h3>Loading clinic photos…</h3><p>Photos added through Dentara CMS will appear here automatically.</p></div></div>
+    </div></section>
+
     <section><div class="container"><div class="cta"><div class="eyebrow" style="color:#9de0d9">Ready for a healthier smile?</div><h2>Book your dental consultation.</h2><p>Call or WhatsApp Dentara Multi Speciality Dental Care to check availability and schedule your visit.</p><div class="actions"><a class="btn outline" href="tel:+918123253237">Call the clinic</a><a class="btn outline" href="https://wa.me/918123253237" target="_blank" rel="noopener">WhatsApp</a></div></div></div></section>
 
     <section id="contact"><div class="container">
@@ -129,7 +139,93 @@
   <a class="wa" href="https://wa.me/918123253237" target="_blank" rel="noopener" aria-label="WhatsApp Dentara">WhatsApp</a>
 
   <script>
-    // Replace every occurrence of 918123253237 with the clinic's WhatsApp/phone number before publishing.
+    const CMS_REPO = 'gauthamu52-hub/dentara-website';
+    const CMS_BRANCH = 'main';
+
+    function escapeHtml(value) {
+      return String(value || '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]));
+    }
+
+    function parseFrontMatter(text) {
+      const match = text.match(/^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/);
+      if (!match) return { data: {}, body: text };
+      const data = {};
+      match[1].split('\n').forEach(line => {
+        const i = line.indexOf(':');
+        if (i < 0) return;
+        let key = line.slice(0, i).trim();
+        let val = line.slice(i + 1).trim();
+        val = val.replace(/^['"]|['"]$/g, '');
+        data[key] = val;
+      });
+      return { data, body: match[2] };
+    }
+
+    function markdownToHtml(md) {
+      let html = escapeHtml(md);
+      html = html.replace(/^###### (.*)$/gm, '<h6>$1</h6>')
+        .replace(/^##### (.*)$/gm, '<h5>$1</h5>')
+        .replace(/^#### (.*)$/gm, '<h4>$1</h4>')
+        .replace(/^### (.*)$/gm, '<h3>$1</h3>')
+        .replace(/^## (.*)$/gm, '<h2>$1</h2>')
+        .replace(/^# (.*)$/gm, '<h1>$1</h1>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/^> (.*)$/gm, '<blockquote>$1</blockquote>')
+        .replace(/^(?:[-*]) (.*)$/gm, '<li>$1</li>')
+        .replace(/(?:<li>.*<\/li>\n?)+/g, m => '<ul>'+m+'</ul>')
+        .replace(/\n\n+/g, '</p><p>')
+        .replace(/\n/g, '<br>');
+      return '<p>'+html+'</p>';
+    }
+
+    async function githubJson(path) {
+      const r = await fetch(`https://api.github.com/repos/${CMS_REPO}/contents/${path}?ref=${CMS_BRANCH}`, { headers: { Accept: 'application/vnd.github+json' } });
+      if (!r.ok) throw new Error('Content unavailable');
+      return r.json();
+    }
+
+    async function loadBlogs() {
+      const box = document.getElementById('blog-list');
+      try {
+        const files = await githubJson('content/blogs');
+        const mdFiles = files.filter(f => f.name.endsWith('.md')).slice(0, 6);
+        if (!mdFiles.length) { box.innerHTML = '<div class="service"><h3>Coming soon</h3><p>New dental health articles will be published here through our Dentara CMS.</p></div>'; return; }
+        const posts = await Promise.all(mdFiles.map(async f => {
+          const raw = await fetch(f.download_url).then(r => r.text());
+          const parsed = parseFrontMatter(raw);
+          return { ...parsed.data, body: parsed.body };
+        }));
+        posts.sort((a,b) => String(b.date||'').localeCompare(String(a.date||'')));
+        box.innerHTML = posts.map(post => `<article class="service"><div class="eyebrow">${escapeHtml(post.date || 'Dentara')}</div><h3>${escapeHtml(post.title || 'Dentara Dental Care')}</h3><p>${escapeHtml(post.description || post.body.replace(/[#*`>]/g,'').slice(0,180))}</p><details style="margin-top:12px"><summary style="color:var(--teal);font-weight:800;cursor:pointer">Read article</summary><div style="margin-top:12px;color:var(--muted)">${markdownToHtml(post.body)}</div></details></article>`).join('');
+      } catch(e) {
+        box.innerHTML = '<div class="service"><h3>Latest articles</h3><p>Our dental health blog will appear here as new posts are published.</p></div>';
+      }
+    }
+
+    async function loadGallery() {
+      const box = document.getElementById('gallery-list');
+      try {
+        const files = await githubJson('content/gallery');
+        const mdFiles = files.filter(f => f.name.endsWith('.md')).slice(0, 12);
+        if (!mdFiles.length) { box.innerHTML = '<div class="service"><h3>Clinic gallery coming soon</h3><p>Clinic photos uploaded through the CMS will appear here automatically.</p></div>'; return; }
+        const items = await Promise.all(mdFiles.map(async f => {
+          const raw = await fetch(f.download_url).then(r => r.text());
+          return parseFrontMatter(raw).data;
+        }));
+        box.innerHTML = items.map(item => {
+          const image = item.image || '';
+          const src = image.startsWith('http') ? image : image;
+          return `<article class="service" style="padding:14px;overflow:hidden">${src ? `<img src="${escapeHtml(src)}" alt="${escapeHtml(item.title || 'Dentara clinic photo')}" style="width:100%;height:240px;object-fit:cover;border-radius:14px" loading="lazy">` : ''}<h3 style="margin-top:14px">${escapeHtml(item.title || 'Dentara Clinic')}</h3>${item.description ? `<p>${escapeHtml(item.description)}</p>` : ''}</article>`;
+        }).join('');
+      } catch(e) {
+        box.innerHTML = '<div class="service"><h3>Clinic gallery coming soon</h3><p>Clinic photos uploaded through the CMS will appear here automatically.</p></div>';
+      }
+    }
+
+    loadBlogs();
+    loadGallery();
   </script>
 </body>
 </html>
