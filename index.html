@@ -214,10 +214,22 @@
           const raw = await fetch(f.download_url).then(r => r.text());
           return parseFrontMatter(raw).data;
         }));
+        function normalizeMediaUrl(path) {
+          if (!path) return '';
+          if (/^https?:\/\//i.test(path)) return path;
+          return '/' + path.replace(/^\.?\//, '');
+        }
+        function mediaFallbackUrl(path) {
+          if (!path || /^https?:\/\//i.test(path)) return '';
+          const clean = path.replace(/^\.?\//, '').replace(/^\//, '');
+          return 'https://raw.githubusercontent.com/' + CMS_REPO + '/' + CMS_BRANCH + '/' + clean.split('/').map(encodeURIComponent).join('/');
+        }
         box.innerHTML = items.map(item => {
           const image = item.image || '';
-          const src = image.startsWith('http') ? image : image;
-          return `<article class="service" style="padding:14px;overflow:hidden">${src ? `<img src="${escapeHtml(src)}" alt="${escapeHtml(item.title || 'Dentara clinic photo')}" style="width:100%;height:240px;object-fit:cover;border-radius:14px" loading="lazy">` : ''}<h3 style="margin-top:14px">${escapeHtml(item.title || 'Dentara Clinic')}</h3>${item.description ? `<p>${escapeHtml(item.description)}</p>` : ''}</article>`;
+          const src = normalizeMediaUrl(image);
+          const fallback = mediaFallbackUrl(image);
+          const imageHtml = src ? `<img src="${escapeHtml(src)}" data-fallback="${escapeHtml(fallback)}" alt="${escapeHtml(item.title || 'Dentara clinic photo')}" style="width:100%;height:240px;object-fit:cover;border-radius:14px" loading="lazy" onerror="if(this.dataset.fallback && this.src !== this.dataset.fallback){this.src=this.dataset.fallback}else{this.style.display='none'}">` : '';
+          return `<article class="service" style="padding:14px;overflow:hidden">${imageHtml}<h3 style="margin-top:14px">${escapeHtml(item.title || 'Dentara Clinic')}</h3>${item.description ? `<p>${escapeHtml(item.description)}</p>` : ''}</article>`;
         }).join('');
       } catch(e) {
         box.innerHTML = '<div class="service"><h3>Clinic gallery coming soon</h3><p>Clinic photos uploaded through the CMS will appear here automatically.</p></div>';
