@@ -2,7 +2,7 @@ backend:
   name: github
   repo: gauthamu52-hub/dentara-website
   branch: main
-
+  base_url: https://dentara-cms-auth.gauthamu52.workers.dev
 media_folder: "assets/uploads"
 public_folder: "/assets/uploads"
 
