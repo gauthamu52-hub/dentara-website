@@ -198,7 +198,23 @@
           return { ...parsed.data, body: parsed.body };
         }));
         posts.sort((a,b) => String(b.date||'').localeCompare(String(a.date||'')));
-        box.innerHTML = posts.map(post => `<article class="service"><div class="eyebrow">${escapeHtml(post.date || 'Dentara')}</div><h3>${escapeHtml(post.title || 'Dentara Dental Care')}</h3><p>${escapeHtml(post.description || post.body.replace(/[#*`>]/g,'').slice(0,180))}</p><details style="margin-top:12px"><summary style="color:var(--teal);font-weight:800;cursor:pointer">Read article</summary><div style="margin-top:12px;color:var(--muted)">${markdownToHtml(post.body)}</div></details></article>`).join('');
+        function normalizeBlogMediaUrl(path) {
+          if (!path) return '';
+          if (/^https?:\/\//i.test(path)) return path;
+          return '/' + path.replace(/^\.?\//, '');
+        }
+        function blogMediaFallbackUrl(path) {
+          if (!path || /^https?:\/\//i.test(path)) return '';
+          const clean = path.replace(/^\.?\//, '').replace(/^\//, '');
+          return 'https://raw.githubusercontent.com/' + CMS_REPO + '/' + CMS_BRANCH + '/' + clean.split('/').map(encodeURIComponent).join('/');
+        }
+        box.innerHTML = posts.map(post => {
+          const image = post.image || '';
+          const src = normalizeBlogMediaUrl(image);
+          const fallback = blogMediaFallbackUrl(image);
+          const imageHtml = src ? `<img src="${escapeHtml(src)}" data-fallback="${escapeHtml(fallback)}" alt="${escapeHtml(post.title || 'Dentara dental health article')}" style="width:100%;height:220px;object-fit:cover;border-radius:14px;margin-bottom:14px;display:block" loading="lazy" onerror="if(this.dataset.fallback && this.src !== this.dataset.fallback){this.src=this.dataset.fallback}else{this.style.display='none'}">` : '';
+          return `<article class="service" style="padding:14px;overflow:hidden">${imageHtml}<div class="eyebrow">${escapeHtml(post.date || 'Dentara')}</div><h3>${escapeHtml(post.title || 'Dentara Dental Care')}</h3><p>${escapeHtml(post.description || post.body.replace(/[#*`>]/g,'').slice(0,180))}</p><details style="margin-top:12px"><summary style="color:var(--teal);font-weight:800;cursor:pointer">Read article</summary><div style="margin-top:12px;color:var(--muted)">${markdownToHtml(post.body)}</div></details></article>`;
+        }).join('');
       } catch(e) {
         box.innerHTML = '<div class="service"><h3>Latest articles</h3><p>Our dental health blog will appear here as new posts are published.</p></div>';
       }
