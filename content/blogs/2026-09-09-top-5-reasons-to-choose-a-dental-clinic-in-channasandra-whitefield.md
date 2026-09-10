@@ -1,6 +1,7 @@
 ---
 title: Top 5 Reasons to Choose a Dental Clinic in Channasandra, Whitefield
 date: 2026-09-10
+image: /assets/uploads/chatgpt-image-sep-9-2026-07_57_39-pm.png
 description: Looking for a reliable dental clinic in Channasandra, Whitefield?
   Discover five reasons to choose Dentara Multi Speciality Dental Care for
   comfortable, modern and family-friendly dental treatment.
